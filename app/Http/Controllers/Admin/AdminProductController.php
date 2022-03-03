@@ -29,6 +29,11 @@ class AdminProductController extends Controller
         $this->productImageRepo = $productImageRepo;
         $this->cateRepo = $cateRepo;
     }
+    /**
+     * Get list products
+     * @return $products
+     * @param $request
+     * **/
     public function index(Request $request)
     {
         $products = $this->productRepo->get()->query();
@@ -44,13 +49,24 @@ class AdminProductController extends Controller
             $products->where('product_name', 'LIKE', "%{$key}%")
             ->orWhere('product_price', $key);
         }
-        return view('admin.product.list')->with('products', $products->paginate(10)->withQueryString());
+        $products = $products->paginate(10)->withQueryString();
+        return view('admin.product.list', compact('products'));
     }
+    /**
+     * view add product
+     * @return view add product
+     * @param none
+     * **/
     public function add()
     {
         $categories = $this->cateRepo->getAll();
         return view('admin.product.add', compact('categories'));
     }
+    /**
+     * Handle add product
+     * @return
+     * @param $request
+     * **/
     public function create(AddProduct $request)
     {
         $product_thumb = $request->file('product_thumb')->hashName();
@@ -71,12 +87,22 @@ class AdminProductController extends Controller
         }
         return redirect('admin/list-product')->with('success', 'Thêm sản phẩm thành công');
     }
+    /**
+     * Delete product
+     * @return
+     * @param $id of product
+     * **/
     public function delete($id)
     {
         $this->deleteMultiFile($id);
         $this->deleteFile($id);
         return redirect('admin/list-product')->with('success', 'Xoá sản phẩm thành công');
     }
+    /**
+     * view edit product
+     * @return view
+     * @param $slug of product
+     * **/
     public function edit($slug)
     {
         $categories = $this->cateRepo->getAll();
@@ -84,6 +110,11 @@ class AdminProductController extends Controller
         $products = $product->load('product_image');
         return view('admin.product.edit', compact('products', 'categories'));
     }
+    /**
+     * Handle update product
+     * @return
+     * @param $id of product & $request
+     * **/
     public function update(UpdateProduct $request, $id)
     {
         $product_thumb = $request->file('product_thumb')->hashName();
@@ -104,6 +135,11 @@ class AdminProductController extends Controller
         $this->saveMultiFile($request->file('product_images'), $id);
         return redirect('admin/list-product')->with('success', 'Cập nhật sản phẩm thành công');
     }
+    /**
+     * Handle save multiple image
+     * @return true false
+     * @param $id of product & info image
+     * **/
     public function saveMultiFile($files, $id)
     {
         foreach ($files as $file) {
@@ -116,6 +152,11 @@ class AdminProductController extends Controller
         }
         return true;
     }
+    /**
+     * Delete image
+     * @return true false
+     * @param $id of product
+     * **/
     public function deleteFile($id)
     {
         $product = $this->productRepo->find($id);
@@ -123,6 +164,11 @@ class AdminProductController extends Controller
         $this->productRepo->delete($id);
         return true;
     }
+    /**
+     * Delete multiple images
+     * @return true false
+     * @param $id of product
+     * **/
     public function deleteMultiFile($id)
     {
         $product_images = $this->productImageRepo->get()->where('product_id', $id)->get();
@@ -131,12 +177,5 @@ class AdminProductController extends Controller
             $this->productImageRepo->get()->where('product_id', $product_image->product_id)->delete();
         }
         return true;
-    }
-    public function search($key, $count)
-    {
-        return DB::table('products')
-            ->where('product_name', 'LIKE', "%{$key}%")
-            ->orWhere('product_price', $key)
-            ->paginate($count);
     }
 }

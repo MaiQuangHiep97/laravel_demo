@@ -23,20 +23,39 @@ class AdminController extends Controller
         $this->adminRepo = $adminRepo;
         $this->infomationRepo = $infomationRepo;
     }
+    /**
+     * Get list admins
+     * @return $admins
+     * @param $request
+     * **/
     public function index(Request $request)
     {
-        if ($request->key) {
+        $admins = $this->adminRepo->get()->query();
+        if ($request->has('key')) {
             $key = $request->key;
-            $admins = $this->search($key, 2);
-        } else {
-            $admins = $this->adminRepo->getWith('infomation', 2);
+            $admins->with('infomation')->where('name', 'LIKE', "%{$key}%")
+                ->orWhere('email', 'LIKE', "%{$key}%")
+                ->orWhereHas('infomation', function ($q) use ($key) {
+                    $q->where('phone', 'LIKE', "%{$key}%");
+                });
         }
+        $admins = $admins->paginate(10)->withQueryString();
         return view('admin.admin.list', compact('admins'));
     }
+    /**
+     * Get view add admin
+     * @return view
+     * @param none
+     * **/
     public function add()
     {
         return view('admin.admin.add');
     }
+    /**
+     * Handle add admin
+     * @return
+     * @param $request
+     * **/
     public function create(AddCustomer $request)
     {
         $dataAdmin = [
@@ -59,22 +78,38 @@ class AdminController extends Controller
             return redirect('admin/list-admin')->with('success', 'Thêm admin thành công');
         }
     }
+    /**
+     * Delete admin
+     * @return true false
+     * @param $id of admins
+     * **/
     public function delete($id)
     {
         if (Auth::guard('admin')->id() == $id) {
             return redirect('admin/list-admin')->with('fails', 'Không thể xoá admin này');
         } else {
-            $this->adminRepo->delete($id);
-            $this->infomationRepo->deleteWhere([['infomationable_id', $id], ['infomationable_type', 'App\Models\Admin']]);
+            $admin = $this->adminRepo->find($id);
+            $admin->delete();
+            $admin->infomation()->delete();
             return redirect('admin/list-admin')->with('success', 'Xoá admin thành công');
         }
     }
+    /**
+     * Get info admins with $id
+     * @return
+     * @param $id
+     * **/
     public function edit($id)
     {
         $admin = $this->adminRepo->find($id);
         $admin = $admin->load('infomation');
         return view('admin.admin.edit', compact('admin'));
     }
+    /**
+     * Handle update admin
+     * @return
+     * @param $request & $id of admin
+     * **/
     public function update(EditAdminRequest $request, $id)
     {
         $email_old = $this->adminRepo->find($id)->email;
@@ -107,22 +142,16 @@ class AdminController extends Controller
             }
         }
     }
+    /**
+     * Update info of admin
+     * @return true
+     * @param $id of admin & $dataAdmin & $dataInfo
+     * **/
     public function updateInfo($id, $dataAdmin = [], $dataInfo = [])
     {
-        $this->adminRepo->update($id, $dataAdmin);
-        $this->infomationRepo
-            ->updateWhere([['infomationable_id', $id], ['infomationable_type', 'App\Models\Admin']], $dataInfo);
+        $admin = $this->adminRepo->find($id);
+        $admin->update($dataAdmin);
+        $admin->infomation()->update($dataInfo);
         return true;
-    }
-    public function search($key, $count)
-    {
-        return DB::table('admins')
-            ->join('infomations', 'admins.id', '=', 'infomations.infomationable_id')
-            ->where('infomationable_type', '=', 'App\Models\Admin')
-            ->where(function ($query) use ($key) {
-                $query->orWhere('name', 'LIKE', "%{$key}%")
-                    ->orWhere('email', 'LIKE', "%{$key}%")
-                    ->orWhere('phone', 'LIKE', "%{$key}%");
-            })->paginate($count);
     }
 }

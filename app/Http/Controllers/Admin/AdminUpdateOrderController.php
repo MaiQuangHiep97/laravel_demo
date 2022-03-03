@@ -35,6 +35,11 @@ class AdminUpdateOrderController extends Controller
         $this->userRepo = $userRepo;
         $this->infomationRepo = $infomationRepo;
     }
+    /**
+     * Get view & info order with $id
+     * @return view
+     * @param $id of order
+     * **/
     public function edit($id)
     {
         $orders = $this->orderRepo->get()->where('id', $id)->with('user.infomation')->first();
@@ -42,24 +47,28 @@ class AdminUpdateOrderController extends Controller
         $order_products = $this->orderProductRepo->get()->where('order_id', $id)->with('product')->get();;
         return view('admin.order.edit', compact('orders', 'order_products'));
     }
+    /**
+     * get list product for update order
+     * @return $products
+     * @param $request
+     * **/
     public function edit_add(Request $request)
     {
-        if ($request->key) {
+        $products = $this->productRepo->get()->query();
+        if ($request->has('key')) {
             $key = $request->key;
-            $products = $this->search_product($key, 10);
-        } else {
-            $products = $this->productRepo->get()->paginate(10)->withQueryString();
+            $products->where('product_name', 'LIKE', "%{$key}%")
+                ->orWhere('product_price', $key);
         }
+        $products = $products->paginate(10)->withQueryString();
         $order_id = $request->id;
         return view('admin.order.edit_add', compact('products', 'order_id'));
     }
-    public function search_product($key, $count)
-    {
-        return DB::table('products')
-            ->where('product_name', 'LIKE', "%{$key}%")
-            ->orWhere('product_price', $key)
-            ->paginate($count);
-    }
+    /**
+     * Handle add product for order
+     * @return
+     * @param $request
+     * **/
     public function edit_store(Request $request)
     {
         $order_product = $this->orderProductRepo->get()->where('order_id', $request->id_order)->where('product_id', $request->id);
@@ -82,6 +91,11 @@ class AdminUpdateOrderController extends Controller
         $this->orderRepo->update($request->id_order, ['total_price' => number_format($total)]);
         return true;
     }
+    /**
+     * Handle update quantity product in order
+     * @return
+     * @param $request
+     * **/
     public function edit_update(Request $request)
     {
         $order_product = $this->orderProductRepo->get()->where('order_id', $request->id)->where('product_id', $request->product_id);
@@ -94,6 +108,11 @@ class AdminUpdateOrderController extends Controller
         }
         return $this->update_ajax($request->id, $request->product_id, $request->numOrder, $sub_total);
     }
+    /**
+     * Handle delete product in order
+     * @return
+     * @param $request
+     * **/
     public function edit_delete(Request $request)
     {
         $order_product = $this->orderProductRepo->get()->where('order_id', $request->id)->where('product_id', $request->product_id);
@@ -120,6 +139,11 @@ class AdminUpdateOrderController extends Controller
         }
         return $data;
     }
+    /**
+     * Update product in order
+     * @return
+     * @param $id of order, $product__id, $numOrder, $sub_total
+     * **/
     public function update_ajax($id, $product_id, $numOrder, $sub_total)
     {
         $products = $this->orderProductRepo->get()->where('order_id', $id)->with('product')->get();
@@ -147,32 +171,39 @@ class AdminUpdateOrderController extends Controller
         }
         return $data;
     }
+    /**
+     * Update status & info user of order
+     * @return
+     * @param $id of order, $request
+     * **/
     public function update(Request $request, $id)
     {
         $this->orderRepo->update($id, [
             'status' => $request->status,
             'payment' => $request->payment
         ]);
+        $user = $this->userRepo->find($request->user_id);
         $order = $this->orderRepo->get()->where('id', $id);
-        if($order->first()->address != null){
+        if ($order->first()->address != null) {
             $order->update([
                 'address' => $request->address
             ]);
-        }else{
-            $this->infomationRepo->get()->where('infomationable_id', $request->user_id)
-            ->where('infomationable_type', 'App\Models\User')
-            ->update([
+        } else {
+            $user->infomation()->update([
                 'address' => $request->address,
             ]);
         }
-        $this->infomationRepo->get()->where('infomationable_id', $request->user_id)
-            ->where('infomationable_type', 'App\Models\User')
-            ->update([
-                'phone' => $request->phone,
-                'gender' => $request->gender
-            ]);
+        $user->infomation()->update([
+            'phone' => $request->phone,
+            'gender' => $request->gender
+        ]);
         return redirect()->back()->with('success', 'Chỉnh sửa đơn hàng thành công');
     }
+    /**
+     * Get status order with now status
+     * @return $status
+     * @param $statusNow
+     * **/
     public function handleStatus($statusNow)
     {
         $status = [];

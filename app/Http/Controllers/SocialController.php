@@ -14,10 +14,20 @@ class SocialController extends Controller
     {
         $this->userRepo = $userRepo;
     }
+    /**
+     * Redirect login provider
+     * @return
+     * @param $provider
+     * **/
     public function redirect($provider)
     {
         return Socialite::driver($provider)->redirect();
     }
+    /**
+     * Handle callback
+     * @return
+     * @param $provider
+     * **/
     public function callback($provider)
     {
         $getInfo = Socialite::driver($provider)->user();
@@ -25,6 +35,11 @@ class SocialController extends Controller
         auth()->login($user);
         return redirect('/');
     }
+    /**
+     * Handle login user
+     * @return $user
+     * @param $info user & $provider
+     * **/
     function createUser($getInfo, $provider)
     {
         $user = $this->userRepo->get()

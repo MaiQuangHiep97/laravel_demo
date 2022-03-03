@@ -16,16 +16,26 @@ class AdminCateController extends Controller
     {
         $this->cateRepo = $cateRepo;
     }
+    /**
+     * Get list categories
+     * @return $cates
+     * @param $request
+     * **/
     public function index(Request $request)
     {
-        if($request->key){
+        $cates = $this->cateRepo->get()->query();
+        if ($request->has('key')) {
             $key = $request->key;
-            $cates = $this->cateRepo->get()->where('category_name', 'LIKE', "%{$key}%")->paginate(5)->withQueryString();
-        }else{
-            $cates = $this->cateRepo->get()->paginate(5)->withQueryString();
+            $cates->where('category_name', 'LIKE', "%{$key}%");
         }
+        $cates = $cates->paginate(5)->withQueryString();
         return view('admin.category.list', compact('cates'));
     }
+    /**
+     * Add category
+     * @return
+     * @param $request
+     * **/
     public function create(AddCategory $request)
     {
         $data = [
@@ -40,16 +50,31 @@ class AdminCateController extends Controller
             return redirect()->back()->with('success', 'Thêm danh mục thành công');
         }
     }
+    /**
+     * Delete Category
+     * @return true/fasle
+     * @param $id of category
+     * **/
     public function delete($id)
     {
         $this->cateRepo->delete($id);
         return redirect()->back()->with('success', 'Xoá danh mục thành công');
     }
+    /**
+     * Get info category
+     * @return $data
+     * @param $request
+     * **/
     public function edit(Request $request)
     {
         $data = $this->cateRepo->find($request->id);
         return $data;
     }
+    /**
+     * Handle update category
+     * @return true/fasle
+     * @param $request
+     * **/
     public function update(UpdateCategory $request)
     {
         $cate_old = $this->cateRepo->find($request->id)->category_name;

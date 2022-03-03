@@ -16,11 +16,21 @@ class CartController extends Controller
     {
         $this->productRepo = $productRepo;
     }
+    /**
+     * Get info cart
+     * @return info cart
+     * @param none
+     * **/
     public function index()
     {
         $contents = Cart::content();
         return view('client.cart.show', compact('contents'));
     }
+    /**
+     * Handle add cart
+     * @return
+     * @param $request
+     * **/
     public function add(Request $request)
     {
         Cart::add([
@@ -33,6 +43,11 @@ class CartController extends Controller
         ]);
         return true;
     }
+    /**
+     * Handle update info cart
+     * @return
+     * @param $request
+     * **/
     public function update(Request $request)
     {
         if ($request->numOrder < 1) {
@@ -69,6 +84,11 @@ class CartController extends Controller
         }
         return $data;
     }
+    /**
+     * Handle delete item cart
+     * @return
+     * @param $request
+     * **/
     public function delete_item(Request $request)
     {
         Cart::remove($request->id);
@@ -89,6 +109,11 @@ class CartController extends Controller
         }
         return $data;
     }
+    /**
+     * Handle delete cart
+     * @return
+     * @param none
+     * **/
     public function destroy()
     {
         Cart::destroy();

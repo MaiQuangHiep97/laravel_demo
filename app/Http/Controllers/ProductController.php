@@ -13,7 +13,11 @@ class ProductController extends Controller
     {
         $this->productRepo = $productRepo;
     }
-
+    /**
+     * Get detail product with slug
+     * @return $product
+     * @param $slug of product
+     * **/
     public function index($slug){
         $products = $this->productRepo->getAll();
         $product = $this->productRepo->get()->where('slug', $slug)->first();

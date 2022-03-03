@@ -8,7 +8,7 @@
                     <i class="fa fa-chart-line fa-3x text-primary"></i>
                     <div class="ms-3">
                         <p class="mb-2">Hoàn thành</p>
-                        <h6 class="mb-0">{{$done}}</h6>
+                        <h6 class="mb-0">{{$count['done']}}</h6>
                     </div>
                 </div>
             </div>
@@ -17,7 +17,7 @@
                     <i class="fa fa-chart-bar fa-3x text-primary"></i>
                     <div class="ms-3">
                         <p class="mb-2">Đang vận chuyển</p>
-                        <h6 class="mb-0">{{ $transport }}</h6>
+                        <h6 class="mb-0">{{ $count['transport'] }}</h6>
                     </div>
                 </div>
             </div>
@@ -26,7 +26,7 @@
                     <i class="fa fa-chart-area fa-3x text-primary"></i>
                     <div class="ms-3">
                         <p class="mb-2">Đang xử lý</p>
-                        <h6 class="mb-0">{{ $handle }}</h6>
+                        <h6 class="mb-0">{{ $count['handle'] }}</h6>
                     </div>
                 </div>
             </div>
@@ -35,7 +35,7 @@
                     <i class="fa fa-chart-pie fa-3x text-primary"></i>
                     <div class="ms-3">
                         <p class="mb-2">Huỷ</p>
-                        <h6 class="mb-0">{{ $cancel }}</h6>
+                        <h6 class="mb-0">{{ $count['cancel'] }}</h6>
                     </div>
                 </div>
             </div>
@@ -73,7 +73,7 @@
                                         @endphp
                                         <tr>
                                             <th scope="row">{{ $order->code }}</th>
-                                            <td>{{ $order->name }}</td>
+                                            <td>{{ $order->user->name }}</td>
                                             <td>@if ($order->status == 'cancel')
                                                 Huỷ
                                             @elseif ($order->status == 'handle')

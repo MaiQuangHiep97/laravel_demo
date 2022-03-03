@@ -39,56 +39,60 @@ class AdminOrderController extends Controller
         $this->userRepo = $userRepo;
         $this->infomationRepo = $infomationRepo;
     }
+    /**
+     * Get list orders
+     * @return $orders
+     * @param $request
+     * **/
     public function index(Request $request)
     {
-        if ($request->status) {
-            $orders = DB::table('orders')->where('status', $request->status)->join('users', 'orders.user_id', '=', 'users.id')
-                ->select('orders.*', 'users.id as user_id', 'users.name', 'users.email')
-                ->orderBy('id', 'desc')->paginate(10);
-            return view('admin.order.list', compact('orders'));
+        $orders = $this->orderRepo->get()->query()->with('user');
+        if ($request->has('status')) {
+            $orders->where('status', $request->status);
         }
-        if ($request->key) {
+        if ($request->has('key')) {
             $key = $request->key;
-            $orders = $this->search($key, 10);
-        } else {
-            $orders = DB::table('orders')->join('users', 'orders.user_id', '=', 'users.id')
-                ->select('orders.*', 'users.id as user_id', 'users.name', 'users.email')
-                ->orderBy('id', 'desc')->paginate(10);
+            $orders->where('code', 'LIKE', "%{$key}%")
+                ->orWhereHas('user', function ($query) use ($key) {
+                    $query->where('name', 'LIKE', "%{$key}%")
+                        ->orWhere('email', 'LIKE', "%{$key}%");
+                });
         }
+        $orders = $orders->latest('id')->paginate(10)->withQueryString();
         return view('admin.order.list', compact('orders'));
     }
-    public function search($key, $count)
-    {
-        return DB::table('orders')->join('users', 'orders.user_id', '=', 'users.id')
-            ->select('orders.*', 'users.id as user_id', 'users.name', 'users.email')
-            ->where('orders.code', 'LIKE', "%{$key}%")
-            ->orWhere('users.name', 'LIKE', "%{$key}%")
-            ->orWhere('users.email', 'LIKE', "%{$key}%")
-            ->orderBy('id', 'desc')->paginate($count);
-    }
+    /**
+     * Get info order with $id
+     * @return view
+     * @param $id of order
+     * **/
     public function edit($id)
     {
         $orders = $this->orderRepo->get()->where('id', $id)->with('user.infomation')->first();
         $order_products = $this->orderProductRepo->get()->where('order_id', $id)->with('product')->get();;
         return view('admin.order.edit', compact('orders', 'order_products'));
     }
+    /**
+     * Get list $products for add order
+     * @return $products
+     * @param $request
+     * **/
     public function add(Request $request)
     {
-        if ($request->key) {
+        $products = $this->productRepo->get()->query();
+        if ($request->has('key')) {
             $key = $request->key;
-            $products = $this->search_product($key, 2);
-        } else {
-            $products = $this->productRepo->get()->paginate(2)->withQueryString();
+            $products->where('product_name', 'LIKE', "%{$key}%")
+                ->orWhere('product_price', $key);
         }
+        $products = $products->paginate(10)->withQueryString();
         return view('admin.order.add', compact('products'));
     }
-    public function search_product($key, $count)
-    {
-        return DB::table('products')
-            ->where('product_name', 'LIKE', "%{$key}%")
-            ->orWhere('product_price', $key)
-            ->paginate($count);
-    }
+    /**
+     * Add $product in cart
+     * @return
+     * @param $request
+     * **/
     public function order_cart_add(Request $request)
     {
         Cart::add([
@@ -101,11 +105,21 @@ class AdminOrderController extends Controller
         ]);
         return true;
     }
+    /**
+     * Show cart
+     * @return info cart
+     * @param none
+     * **/
     public function order_cart_show()
     {
         $items = Cart::content();
         return view('admin.order.cart', compact('items'));
     }
+    /**
+     * update cart
+     * @return info cart
+     * @param $request
+     * **/
     public function order_cart_update(Request $request)
     {
         if ($request->numOrder < 1) {
@@ -142,6 +156,11 @@ class AdminOrderController extends Controller
         }
         return $data;
     }
+    /**
+     * Delete cart
+     * @return
+     * @param $request
+     * **/
     public function order_cart_delete(Request $request)
     {
         Cart::remove($request->id);
@@ -162,6 +181,11 @@ class AdminOrderController extends Controller
         }
         return $data;
     }
+    /**
+     * Add order
+     * @return
+     * @param $request
+     * **/
     public function create(AddOrderRequest $request)
     {
         $id = $this->userRepo->get()->updateOrCreate(

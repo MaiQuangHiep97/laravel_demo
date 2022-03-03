@@ -21,20 +21,39 @@ class AdminUserController extends Controller
         $this->userRepo = $userRepo;
         $this->infomationRepo = $infomationRepo;
     }
+    /**
+     * Get list users
+     * @return $users
+     * @param $request
+     * **/
     public function index(Request $request)
     {
-        if ($request->key) {
+        $users = $this->userRepo->get()->query();
+        if ($request->has('key')) {
             $key = $request->key;
-            $users = $this->search($key, 10);
-        } else {
-            $users = $this->userRepo->getWith('infomation', 10);
+            $users->with('infomation')->where('name', 'LIKE', "%{$key}%")
+                ->orWhere('email', 'LIKE', "%{$key}%")
+                ->orWhereHas('infomation', function ($q) use ($key) {
+                    $q->where('phone', 'LIKE', "%{$key}%");
+                });
         }
+        $users = $users->paginate(10)->withQueryString();
         return view('admin.user.list', compact('users'));
     }
+    /**
+     * Get view add user
+     * @return view
+     * @param none
+     * **/
     public function add()
     {
         return view('admin.user.add');
     }
+    /**
+     * Handle add user
+     * @return
+     * @param $request
+     * **/
     public function create(AddCustomer $request)
     {
         $dataUser = [
@@ -57,18 +76,34 @@ class AdminUserController extends Controller
             return redirect('admin/list-user')->with('success', 'Thêm user thành công');
         }
     }
+    /**
+     * Handle delete user with $id
+     * @return
+     * @param $id of user
+     * **/
     public function delete($id)
     {
-        $this->userRepo->delete($id);
-        $this->infomationRepo->deleteWhere([['infomationable_id', $id], ['infomationable_type', 'App\Models\User']]);
+        $user = $this->userRepo->find($id);
+        $user->delete();
+        $user->infomation()->delete();
         return redirect('admin/list-user')->with('success', 'Xoá user thành công');
     }
+    /**
+     * Get info user with $id
+     * @return $user
+     * @param $id of user
+     * **/
     public function edit($id)
     {
         $user = $this->userRepo->find($id);
         $user = $user->load('infomation');
         return view('admin.user.edit', compact('user'));
     }
+    /**
+     * Handle update user
+     * @return
+     * @param $request, $id of user
+     * **/
     public function update(EditAdminRequest $request, $id)
     {
         $email_old = $this->userRepo->find($id)->email;
@@ -101,22 +136,16 @@ class AdminUserController extends Controller
             }
         }
     }
+    /**
+     * Handle update info user in database
+     * @return true/fasle
+     * @param $id, $dataUser, $dataInfo
+     * **/
     public function updateInfo($id, $dataUser = [], $dataInfo = [])
     {
-        $this->userRepo->update($id, $dataUser);
-        $this->infomationRepo
-            ->updateWhere([['infomationable_id', $id], ['infomationable_type', 'App\Models\User']], $dataInfo);
+        $user = $this->userRepo->find($id);
+        $user->update($dataUser);
+        $user->infomation()->update($dataInfo);
         return true;
-    }
-    public function search($key, $count)
-    {
-        return DB::table('users')->select('users.id as id', 'name', 'email')
-            ->join('infomations', 'users.id', '=', 'infomations.infomationable_id')
-            ->where('infomationable_type', '=', 'App\Models\User')
-            ->where(function ($query) use ($key) {
-                $query->orWhere('name', 'LIKE', "%{$key}%")
-                    ->orWhere('email', 'LIKE', "%{$key}%")
-                    ->orWhere('phone', 'LIKE', "%{$key}%");
-            })->paginate($count);
     }
 }

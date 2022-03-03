@@ -22,10 +22,10 @@ class HomeController extends Controller
     }
 
     /**
-     * Show the application dashboard.
-     *
-     * @return \Illuminate\Contracts\Support\Renderable
-     */
+     * Get list products
+     * @return $products
+     * @param $request
+     * **/
     public function index(Request $request)
     {
         $products = $this->productRepo->get()->query();
@@ -39,6 +39,11 @@ class HomeController extends Controller
         }
         return view('client.home.index')->with('products', $products->paginate(10)->withQueryString());
     }
+    /**
+     * Get product with category
+     * @return $products
+     * @param $request & $slug of category
+     * **/
     public function show(Request $request, $slug)
     {
         $cate_id = $this->cateRepo->get()->where('slug', $slug)->first()->id;
@@ -49,10 +54,5 @@ class HomeController extends Controller
                 ->paginate(10)->withQueryString();
         }
         return view('client.home.index', compact('products'));
-    }
-    public function search($key, $count)
-    {
-        $products = $this->productRepo->get()->where('product_name', $key)->paginate($count)->withQueryString();
-        return $products;
     }
 }

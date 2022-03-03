@@ -59,7 +59,7 @@
                                         @endphp
                                         <tr>
                                             <th scope="row">{{ $order->code }}</th>
-                                            <td>{{ $order->name }}</td>
+                                            <td>{{ $order->user->name }}</td>
                                             <td>
                                                 @if ($order->status == 'cancel')
                                                     Huỷ

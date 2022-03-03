@@ -29,12 +29,22 @@ class CheckoutController extends Controller
         $this->infomationRepo = $infomationRepo;
         $this->orderProductRepo = $orderProductRepo;
     }
+    /**
+     * Get view checkout & info cart
+     * @return view
+     * @param none
+     * **/
     public function index(){
         $contents = Cart::content();
         $user = $this->userRepo->find(Auth::id());
         $user = $user->load('infomation');
         return view('client.checkout.checkout', compact('contents', 'user'));
     }
+    /**
+     * Handle checkout
+     * @return
+     * @param $request
+     * **/
     public function checkout(CheckoutRequest $request){
         $this->infomationRepo->get()->updateOrCreate(
             ['infomationable_id'=> $request->user_id, 'infomationable_type'=> 'App\Models\User'],

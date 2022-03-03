@@ -23,8 +23,12 @@ class DashboardController extends Controller
         $this->orderProductRepo = $orderProductRepo;
         $this->orderRepo = $orderRepo;
     }
-    public function index(Request $request)
-    {
+    /**
+     * Get count order with status
+     * @return $count
+     * @param none
+     * **/
+    public function counts(){
         $handle = $this->orderRepo->get()->where('status', 'handle')->count();
         $cancel = $this->orderRepo->get()->where('status', 'cancel')->count();
         $transport = $this->orderRepo->get()->where('status', 'transport')->count();
@@ -35,23 +39,29 @@ class DashboardController extends Controller
             'transport' => $transport,
             'done' => $done,
         ];
-        if ($request->key) {
-            $key = $request->key;
-            $orders = $this->search($key, 10);
-        } else {
-            $orders = DB::table('orders')->join('users', 'orders.user_id', '=', 'users.id')
-                ->select('orders.*', 'users.id as user_id', 'users.name', 'users.email')
-                ->latest()->paginate(10);
-        }
-        return view('admin.dashboard.dashboard', compact('orders','handle', 'cancel', 'transport', 'done'));
+        return $count;
     }
-    public function search($key, $count)
+    /**
+     * Get list orders & counts
+     * @return $orders & $count
+     * @param $request
+     * **/
+    public function index(Request $request)
     {
-        return DB::table('orders')->join('users', 'orders.user_id', '=', 'users.id')
-            ->select('orders.*', 'users.id as user_id', 'users.name', 'users.email')
-            ->where('orders.code', 'LIKE', "%{$key}%")
-            ->orWhere('users.name', 'LIKE', "%{$key}%")
-            ->orWhere('users.email', 'LIKE', "%{$key}%")
-            ->latest()->paginate($count);
+        $count = $this->counts();
+        $orders = $this->orderRepo->get()->query()->with('user');
+        if ($request->has('status')) {
+            $orders->where('status', $request->status);
+        }
+        if ($request->has('key')) {
+            $key = $request->key;
+            $orders->where('code', 'LIKE', "%{$key}%")
+                ->orWhereHas('user', function ($query) use ($key) {
+                    $query->where('name', 'LIKE', "%{$key}%")
+                        ->orWhere('email', 'LIKE', "%{$key}%");
+                });
+        }
+        $orders = $orders->latest('id')->paginate(10)->withQueryString();
+        return view('admin.dashboard.dashboard', compact('orders','count'));
     }
 }
